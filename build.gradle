@@ -7,7 +7,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath group: 'jaci.openrio.gradle', name: 'GradleRIO', version: '4.0.2'
+        classpath group: 'jaci.openrio.gradle', name: 'GradleRIO', version: '4.2.3'
     }
 }
 
@@ -17,7 +17,7 @@ apply plugin: 'eclipse'
 apply plugin: 'GradleRIO' //Apply the GradleRIO plugin
 apply plugin: "jacoco"
 
-gradlerio.robotClass = "org.usfirst.frc.team3465.Robot"   //The class for the main Robot Class. Used in manifest
+gradlerio.robotClass = "org.omegafactor.robot.Robot"   //The class for the main Robot Class. Used in manifest
 gradlerio.team = '3465'                                   //Your FRC team number (e.g. 5333 for team 'Can't C#', or 47 for Chief Delphi)
 //gradlerio.rioIP = "10.53.33.20"                         //Uncomment to specify the IP address of the RIO
 
