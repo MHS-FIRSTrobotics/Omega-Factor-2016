@@ -1,6 +1,7 @@
 package org.omegafactor.robot;
 
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.VictorSP;
 
 
 public class HardwareMap {
@@ -8,11 +9,13 @@ public class HardwareMap {
     public static final int DRIVE_LEFT_BACK_PWM_PIN = 1;
     public static final int DRIVE_RIGHT_FRONT_PWM_PIN = 2;
     public static final int DRIVE_LEFT_FRONT_PWM_PIN = 3;
+    public static final int COMP_BALL_RETRIEVER_PWM_PIN = 4;
 
     public static final Talon rightFront =  new Talon(DRIVE_RIGHT_FRONT_PWM_PIN);
     public static final Talon leftFront =  new Talon(DRIVE_LEFT_FRONT_PWM_PIN);
     public static final Talon leftBack = new Talon(DRIVE_LEFT_BACK_PWM_PIN);
     public static final Talon rightBack =  new Talon(DRIVE_RIGHT_BACK_PWM_PIN);
+    public static final VictorSP ballRetreiver = new VictorSP(COMP_BALL_RETRIEVER_PWM_PIN);
 
     private static boolean configured;
     private static HardwareMap instance;

@@ -1,7 +1,10 @@
 package org.omegafactor.robot;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.vision.AxisCamera;
 import org.omegafactor.robot.hardware.internal.F130Gamepad;
 
 
@@ -9,6 +12,10 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
     F130Gamepad joystick = new F130Gamepad(new Joystick(0));
     private boolean stopped = true;
     private boolean isStopped = true;
+    private final double ball_retriver_speed = -1;
+    private boolean ballRetrieve;
+    private boolean ballRetrieveBack;
+    private boolean neitherPressed;
 
     @Override
     public String getName() {
@@ -77,9 +84,40 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
                 HardwareMap.rightBack.set(rightY);
                 HardwareMap.leftBack.set(leftY);
                 HardwareMap.leftFront.set(leftY);
-                if (joystick.a()) {
-                    System.out.println("Joystick A button pressed");
+
+                if (neitherPressed) {
+                    if (joystick.a() && !joystick.b()) {
+                        ballRetrieve = !ballRetrieve;
+                        ballRetrieveBack = false;
+                    } else if (joystick.b() && !joystick.a()) {
+                        ballRetrieveBack = !ballRetrieveBack;
+                        ballRetrieve = false;
+                    }
                 }
+
+                neitherPressed = !(joystick.a() || joystick.b());
+
+                if (joystick.x()) {
+                    ballRetrieve = false;
+                    ballRetrieveBack = false;
+                    HardwareMap.ballRetreiver.set(0);
+                }
+
+                if (ballRetrieve) {
+                    HardwareMap.ballRetreiver.set(ball_retriver_speed);
+                } else if (ballRetrieveBack) {
+                    HardwareMap.ballRetreiver.set(-ball_retriver_speed);
+                } else {
+                    HardwareMap.ballRetreiver.set(0);
+                }
+//
+//                if (joystick.a()) {
+//                    HardwareMap.ballRetreiver.set(ball_retriver_speed); //change reverse value accordingly
+//                } else if (joystick.b()) {
+//                    HardwareMap.ballRetreiver.set(-ball_retriver_speed);
+//                } else {
+//                    HardwareMap.ballRetreiver.set(0);
+//                }
             }
             isStopped = true;
         }
