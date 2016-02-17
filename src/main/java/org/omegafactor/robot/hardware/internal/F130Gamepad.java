@@ -67,6 +67,22 @@ public class F130Gamepad {
         return joystick.getRawButton(7);
     }
 
+    public boolean dpadUp() {
+        return joystick.getPOV() == 90;
+    }
+
+    public boolean dpadDown() {
+        return joystick.getPOV() == 270;
+    }
+
+    public boolean dpadLeft() {
+        return joystick.getPOV() == 180;
+    }
+
+    public boolean dpadRight() {
+        return joystick.getPOV() == 0;
+    }
+
     public boolean start() {
         return joystick.getRawButton(8);
     }

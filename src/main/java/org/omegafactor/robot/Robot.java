@@ -21,7 +21,7 @@ public class Robot extends IterativeRobot {
         HardwareMap.configure();
         teleOp = new TeleOp();
         server = new CameraServer();
-        autonomous = new Autonomous();
+        autonomous = new Autonomous(teleOp);
         watchdog = new Watchdog();
         final List<AbstractExecutionThreadService> services = Arrays.asList(teleOp, server, /*autonomous,*/ watchdog);
         ServiceManager manager = new ServiceManager(services);

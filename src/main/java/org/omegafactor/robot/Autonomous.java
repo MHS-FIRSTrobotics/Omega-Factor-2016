@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public class Autonomous extends AbstractExecutionThreadService {
     private boolean start;
     private boolean stop;
@@ -19,10 +21,14 @@ public class Autonomous extends AbstractExecutionThreadService {
     private final SendableChooser sendableChooser;
     private final ExecutorService autoExecutor;
     private String currentName;
+    private NavX navX;
+    private TeleOp teleOpInstance;
 
-    public Autonomous() {
+    public Autonomous(TeleOp teleOpInstance) {
+        this.teleOpInstance = teleOpInstance;
         sendableChooser = new SendableChooser();
         autoExecutor = Executors.newSingleThreadExecutor();
+        navX = new NavX();
     }
 
     public void startUp() {
@@ -82,7 +88,6 @@ public class Autonomous extends AbstractExecutionThreadService {
                     runnable.stop();
                     break;
                 }
-
                 Thread.yield();
             }
         }
@@ -109,10 +114,7 @@ public class Autonomous extends AbstractExecutionThreadService {
     public class Test implements AutoRunnable {
         @Override
         public void run() {
-            HardwareMap.leftBack.set(1);
-            HardwareMap.rightFront.set(1);
-            HardwareMap.leftFront.set(1);
-            HardwareMap.rightBack.set(1);
+            driveBase(1);
 
             try {
                 Thread.sleep(5000);
@@ -120,15 +122,115 @@ public class Autonomous extends AbstractExecutionThreadService {
                 e.printStackTrace();
             }
 
-            HardwareMap.leftBack.set(0);
-            HardwareMap.rightFront.set(0);
-            HardwareMap.leftFront.set(0);
-            HardwareMap.rightBack.set(0);
+           driveBase(0);
+        }
+
+        @Override
+
+        public void stop() {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @AutoMode("Drive Backwards")
+    public class DriveBackwards implements AutoRunnable {
+
+        @Override
+        public void run() {
+            driveBase(-1);
+
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+           driveBase(0);
         }
 
         @Override
         public void stop() {
             Thread.currentThread().interrupt();
         }
+    }
+
+    @AutoMode("Stop on Collision")
+    public class StopOnCollision implements AutoRunnable {
+        boolean collision;
+        @Override
+        public void run() {
+            navX.configureNavXCollisionDetectionCallback(navX1 -> {
+                collision = true;
+                return false;
+            });
+            while (!Thread.currentThread().isInterrupted() && !collision) {
+                driveBase(.5);
+            }
+
+            driveBase(0);
+        }
+
+        @Override
+        public void stop() {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @AutoMode("Record Autonomous")
+    public class RecordAuto implements AutoRunnable {
+        boolean stop = false;
+        @Override
+        public void run() {
+            boolean waitForVerify = true;
+            System.out.println("Press X on gamepad 1");
+            while (waitForVerify) {
+                waitForVerify = !HardwareMap.gamepad1.isXPressed();
+                Thread.yield();
+
+                if (stop) {
+                    return;
+                }
+            }
+
+            waitForVerify = true;
+            System.out.println("Press Y on gamepad 2");
+            while (waitForVerify) {
+                waitForVerify = !HardwareMap.gamepad2.isYPressed();
+                Thread.yield();
+
+                if (stop) {
+                    return;
+                }
+            }
+
+            System.out.println("Starting Up Recorder");
+            HardwareMap.gamepad1.startRecording("AUTO_GP1");
+            HardwareMap.gamepad2.startRecording("AUTO_GP2");
+            try {
+                while (!stop) {
+                    teleOpInstance.loopTeleOp();
+                }
+            } finally {
+                HardwareMap.gamepad1.stopRecording();
+                HardwareMap.gamepad2.stopRecording();
+            }
+        }
+
+        @Override
+        public void stop() {
+            stop = true;
+        }
+    }
+
+    static void driveBase(double speed) {
+        checkArgument(speed >= -1 && speed <= 1, "The drive speed of " + speed + " is not between -1 and 1.");
+        HardwareMap.leftBack.set(speed);
+        HardwareMap.rightFront.set(speed);
+        HardwareMap.leftFront.set(speed);
+        HardwareMap.rightBack.set(speed);
+    }
+
+    static void stopRobot() {
+        driveBase(0);
     }
 }

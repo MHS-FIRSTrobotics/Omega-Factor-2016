@@ -24,6 +24,7 @@ gradlerio.team = '3465'                                   //Your FRC team number
 dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.google.guava:guava:19.0'
+    compile 'com.google.code.gson:gson:2.4'
     compile 'org.jetbrains:annotations:15.0'
 }
 
