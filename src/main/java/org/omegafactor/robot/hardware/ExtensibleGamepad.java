@@ -85,6 +85,17 @@ public class ExtensibleGamepad {
        this(null);
     }
 
+
+    /**
+     *
+     *
+     */
+    public void updateGamepad() {
+        if (basicGamepad1 != null) {
+            updateGamepad(basicGamepad1);
+        }
+    }
+
     /*
      * Updates this to the status of the provided Gamepad (recast this from a <code>{@link
      * Gamepad}</code>)
@@ -132,10 +143,6 @@ public class ExtensibleGamepad {
             double leftX = state.leftJoystick.x;
             double leftY = state.leftJoystick.y;
             leftJoystick().update(leftX, leftY, state.leftJoystick.pressed);
-
-            double rightX = state.rightJoystick.x;
-            double rightY = state.rightJoystick.y;
-            rightJoystick().update(rightX, rightY, state.rightJoystick.pressed);
 
             timestamp = System.currentTimeMillis();
         } else {

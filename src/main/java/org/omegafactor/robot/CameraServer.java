@@ -2,42 +2,94 @@ package org.omegafactor.robot;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.ni.vision.NIVision;
-import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.LinkedList;
+import java.util.List;
 
 
 public class CameraServer  extends AbstractExecutionThreadService {
     private NIVision.Image frame;
-    private int session;
+    private List<Integer> cameraList = new LinkedList<>();
+    private static Thread executionThread;
 
     @Override
     public void startUp() throws Exception {
         frame = NIVision.imaqCreateImage(NIVision.ImageType.IMAGE_RGB, 0);
 
         // the camera name (ex "cam0") can be found through the roborio web interface
-        session = NIVision.IMAQdxOpenCamera("cam1",
-                NIVision.IMAQdxCameraControlMode.CameraControlModeController);
-        NIVision.IMAQdxConfigureGrab(session);
-        //NIVision.IMAQdxOpenCamera()
+        try {
+            cameraList.add(NIVision.IMAQdxOpenCamera("cam0",
+                    NIVision.IMAQdxCameraControlMode.CameraControlModeController));
+        } catch (Exception ex) {
+            System.err.println("Error accessing cam0");
+            ex.printStackTrace();
+        }
 
-        Thread.currentThread().setPriority(2);
+        try {
+            cameraList.add(NIVision.IMAQdxOpenCamera("cam1",
+                    NIVision.IMAQdxCameraControlMode.CameraControlModeController));
+        } catch (Exception ex) {
+            System.err.println("Error accessing cam1");
+            ex.printStackTrace();
+        }
+
+        for (Integer session : cameraList) {
+            NIVision.IMAQdxConfigureGrab(session);
+        }
+
+
+        Thread.currentThread().setPriority(4);
     }
 
     @Override
     protected void run() throws Exception {
-        NIVision.IMAQdxStartAcquisition(session);
+        executionThread = Thread.currentThread();
+        for (Integer session :
+                cameraList) {
+            NIVision.IMAQdxStartAcquisition(session);
+        }
+
         //NIVision.IMA
 
+        int session;
+        if (cameraList.size() > 0) {
+            session = cameraList.get(0);
+        } else {
+            System.err.println("No camera found! Quitting...");
+            return;
+        }
         while (isRunning()) {
-            NIVision.IMAQdxGrab(session, frame, 1);
+//            for (Integer session :
+//                    cameraList) {
+            //int session = cameraList.get(0);
+                NIVision.IMAQdxGrab(session, frame, 1);
+                edu.wpi.first.wpilibj.CameraServer.getInstance().setImage(frame);
+            //}
+
             //NetworkTable.
-            edu.wpi.first.wpilibj.CameraServer.getInstance().setImage(frame);
 
             Thread.yield();
         }
     }
 
+    @NotNull
+    private NIVision.Point convertFloatPointToPoint(NIVision.PointFloat point) {
+        return new NIVision.Point((int)point.x, (int) point.y);
+    }
+
     @Override
     public void shutDown() {
-        NIVision.IMAQdxStopAcquisition(session);
+        executionThread = null;
+        for (Integer session :
+                cameraList) {
+            NIVision.IMAQdxStopAcquisition(session);
+        }
+    }
+
+    public static void requestPriorityChange(int level) {
+        if (executionThread != null) {
+            executionThread.setPriority(level);
+        }
     }
 }

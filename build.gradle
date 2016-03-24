@@ -7,7 +7,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath group: 'jaci.openrio.gradle', name: 'GradleRIO', version: '4.2.3'
+        classpath group: 'jaci.openrio.gradle', name: 'GradleRIO', version: '4.3.3'
     }
 }
 

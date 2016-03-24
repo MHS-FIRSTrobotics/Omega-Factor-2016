@@ -1,8 +1,10 @@
 package org.omegafactor.robot;
 
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.omegafactor.robot.hardware.ExtensibleGamepad;
-import org.omegafactor.robot.hardware.internal.F130Gamepad;
 
 
 class TeleOp extends AbstractExecutionThreadService implements CoreRobotService {
@@ -14,6 +16,7 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
     private boolean ballRetrieve;
     private boolean ballRetrieveBack;
     private boolean neitherPressed;
+    private Thread executionThread;
 
     @Override
     public String getName() {
@@ -28,6 +31,12 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
 
     @Override
     protected void run() throws Exception {
+        executionThread = Thread.currentThread();
+
+//        SendableChooser chooser = new SendableChooser();
+//        chooser.addDefault("DEFAULT TELEOP", true);
+//        chooser.addObject("RECORD AUTO", false);
+//        SmartDashboard.putData("TELEOP SELECTION", chooser);
         while (isRunning()) {
             while (stopped) {
                 Thread.sleep(50);
@@ -37,34 +46,51 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
 //                    throw new IllegalStateException("The Controller is using an incorrect amount of axises," +
 //                            " please verify the the F130 mode is set to D");
 //                }
-            while (!stopped) {
-                loopTeleOp();
+
+                HardwareMap.joystick1.leftRumble(1);
+                while (!stopped) {
+                    loopTeleOp();
+                }
+                isStopped = true;
+
             }
-            isStopped = true;
         }
-    }
+
 
     public void loopTeleOp() {
+        SmartDashboard.putNumber("BATT_VOLT", DriverStation.getInstance().getBatteryVoltage());
+        moveRobot();
+        powerBallFetcher();
+        driveArmMotor();
+        driveWinchMotor();
+        driveArmLift();
+    }
+
+    private void moveRobot() {
         double rightY;
         double leftY;
+       //HardwareMap.navX.loop();
+        gamepad1.updateGamepad();
+        gamepad2.updateGamepad();
 
         final double gamePad1LeftX = gamepad1.leftJoystick().X();
         final double gamePad1LeftY = gamepad1.leftJoystick().Y();
+        //System.out.println("Joystick: " + HardwareMap.joystick1.leftX() + " Gamepad: " + gamepad1.leftJoystick().X());
         final double x = gamepad1.rightJoystick().X();
         final double y = gamepad1.rightJoystick().Y();
+
         if (gamepad1.isLeftBumperPressed()) {
             System.out.print("Inverted Mode");
             leftY = -gamePad1LeftY;
             rightY = -y;
         } else {
-            leftY = y;
+            leftY = gamePad1LeftY;
             rightY = y;
         }
 
         if (gamepad1.getLeftTrigger() > .5) {
             leftY = gamePad1LeftY + gamePad1LeftX;
-
-            rightY = gamePad1LeftY - x;
+            rightY = gamePad1LeftY - gamePad1LeftX;
 
             double speed = Math.sqrt(x * x + y * y);
             leftY *= speed;
@@ -77,8 +103,8 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
             leftY /= 5d;
             rightY /= 5d;
         } else if (gamepad1.getRightTrigger() <= .15) {
-            leftY /= 2d;
-            rightY /= 2d;
+            leftY *= .75;
+            rightY *= .75;
         }
 
         if (gamepad1.isRightBumperPressed()) {
@@ -88,11 +114,16 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
             rightY = Math.round(rightY * 10) / 10d;
         }
 
-        HardwareMap.rightFront.set(rightY);
+        if (!DriverStation.getInstance().isBrownedOut()) {
+            HardwareMap.rightFront.set(rightY);
+            HardwareMap.leftFront.set(leftY);
+        }
+
         HardwareMap.rightBack.set(rightY);
         HardwareMap.leftBack.set(leftY);
-        HardwareMap.leftFront.set(leftY);
+    }
 
+    private void powerBallFetcher() {
         if (neitherPressed) {
             if (gamepad1.isAPressed() && !gamepad1.isBPressed()) {
                 ballRetrieve = !ballRetrieve;
@@ -108,44 +139,61 @@ class TeleOp extends AbstractExecutionThreadService implements CoreRobotService 
         if (gamepad1.isXPressed()) {
             ballRetrieve = false;
             ballRetrieveBack = false;
-            HardwareMap.ballRetreiver.set(0);
+            HardwareMap.ballReceiver.set(0);
         }
 
         if (ballRetrieve) {
-            HardwareMap.ballRetreiver.set(ball_retriver_speed);
+            HardwareMap.ballReceiver.set(ball_retriver_speed);
         } else if (ballRetrieveBack) {
-            HardwareMap.ballRetreiver.set(-ball_retriver_speed);
+            HardwareMap.ballReceiver.set(-ball_retriver_speed);
         } else {
-            HardwareMap.ballRetreiver.set(0);
+            HardwareMap.ballReceiver.set(0);
         }
+    }
 
+    private void driveArmMotor() {
         if (gamepad2.rightJoystick().Y() >= 0.0025 || gamepad2.rightJoystick().Y() <= -0.0025) {
-            HardwareMap.armMotor.set(clip(Math.tanh(-gamepad2.rightJoystick().Y()), -1d, 1d));
+            final double armPower = gamepad2.rightJoystick().Y();
+            HardwareMap.armMotor.set(gamepad2.isLeftBumperPressed() ? armPower : armPower / 2);
         } else {
             HardwareMap.armMotor.set(0);
         }
+    }
 
+    private void driveWinchMotor() {
         if (gamepad2.isAPressed()) {
-            HardwareMap.winchMotor.set(-1);
-        } else if (gamepad2.isBPressed()) {
             HardwareMap.winchMotor.set(1);
+        } else if(gamepad2.isBPressed()) {
+            HardwareMap.winchMotor.set(-1);
         } else {
             HardwareMap.winchMotor.set(0);
         }
+    }
 
-
+    private void driveArmLift() {
+        if (gamepad2.isXPressed()) {
+            HardwareMap.armPushUp.set(.1);
+        } else if (gamepad2.isYPressed()) {
+            HardwareMap.armPushUp.set(-.1);
+        } else {
+            HardwareMap.armPushUp.set(0);
+        }
     }
 
     private static double clip(double x, double min, double max) {
         return Math.min(max, Math.max(x, min));
     }
 
-    public void stopMode() {
+    public synchronized void stopMode() {
         stopped = true;
+        executionThread.setPriority(3);
+        CameraServer.requestPriorityChange(3);
     }
 
-    public void startMode() {
+    public synchronized void startMode() {
         stopped = false;
+        executionThread.setPriority(7);
+        CameraServer.requestPriorityChange(6);
     }
 
     public boolean waitUntilStopped() throws InterruptedException {

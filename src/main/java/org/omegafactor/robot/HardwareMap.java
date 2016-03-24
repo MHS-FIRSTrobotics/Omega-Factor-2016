@@ -14,15 +14,18 @@ public class HardwareMap {
     public static final int COMP_BALL_RETRIEVER_PWM_PIN = 4;
     public static final int COMP_ARM_MOTOR_PWM_PIN = 5;
     public static final int COMP_WINCH_MOTOR = 6;
+    public static final int COMP_ARM_PUSH_UP = 7;
 
     public static final Talon rightFront =  new Talon(DRIVE_RIGHT_FRONT_PWM_PIN);
     public static final Talon leftFront =  new Talon(DRIVE_LEFT_FRONT_PWM_PIN);
     public static final Talon leftBack = new Talon(DRIVE_LEFT_BACK_PWM_PIN);
     public static final Talon rightBack =  new Talon(DRIVE_RIGHT_BACK_PWM_PIN);
-    public static final VictorSP ballRetreiver = new VictorSP(COMP_BALL_RETRIEVER_PWM_PIN);
+    public static final VictorSP ballReceiver = new VictorSP(COMP_BALL_RETRIEVER_PWM_PIN);
     public static final Spark armMotor = new Spark(COMP_ARM_MOTOR_PWM_PIN);
     public static final VictorSP winchMotor = new VictorSP(COMP_WINCH_MOTOR);
+    public static final VictorSP armPushUp = new VictorSP(COMP_ARM_PUSH_UP);
     public static AHRS navx;
+    public static NavX navX = new NavX();
 
     public static F130Gamepad joystick1 = new F130Gamepad(new Joystick(0));
     public static F130Gamepad joystick2 = new F130Gamepad(new Joystick(1));
@@ -42,6 +45,8 @@ public class HardwareMap {
         if (!configured) {
             HardwareMap.rightBack.setInverted(true);
             HardwareMap.rightFront.setInverted(true);
+            HardwareMap.winchMotor.setInverted(true);
+
             if (navx == null) {
                 configureNavX();
             }
